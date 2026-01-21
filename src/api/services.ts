@@ -3,9 +3,9 @@ import type { Product, Category, Client, Address, Bill, Order, OrderDetail, Revi
 
 // Generic CRUD helper
 const createCrudService = <T>(endpoint: string) => ({
-    getAll: async () => {
+    getAll: async (params?: { skip?: number; limit?: number }) => {
         // Backend requirement: Trailing slash for lists
-        const { data } = await api.get<T[]>(`${endpoint}/`);
+        const { data } = await api.get<T[]>(`${endpoint}/`, { params });
         return data;
     },
     getOne: async (id: number) => {

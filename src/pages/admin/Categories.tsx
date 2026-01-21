@@ -11,15 +11,21 @@ import { toast } from 'sonner';
 export function Categories() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Category | null>(null);
+    const [page, setPage] = useState(0);
+    const limit = 10;
+
     const queryClient = useQueryClient();
-    
+
     const methods = useForm<Category>();
     const { reset, handleSubmit } = methods;
 
     const { data: categories = [], isLoading } = useQuery({
-        queryKey: ['categories'],
-        queryFn: () => categoryService.getAll()
+        queryKey: ['categories', page],
+        queryFn: () => categoryService.getAll({ skip: page * limit, limit: limit + 1 })
     });
+
+    const hasMore = categories.length > limit;
+    const paginatedCategories = categories.slice(0, limit);
 
     const createMutation = useMutation({
         mutationFn: categoryService.create,
@@ -91,14 +97,17 @@ export function Categories() {
 
     return (
         <div>
-            <DataTable 
-                title="Categories" 
-                data={categories} 
+            <DataTable
+                title="Categories"
+                data={paginatedCategories}
                 columns={columns}
                 onCreate={openCreateModal}
                 onEdit={openEditModal}
                 onDelete={handleDelete}
                 keyField="id_key"
+                currentPage={page}
+                onPageChange={setPage}
+                hasMore={hasMore}
             />
 
             <Modal
@@ -108,10 +117,10 @@ export function Categories() {
             >
                 <FormProvider {...methods}>
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <FormField 
-                            name="name" 
-                            label="Name" 
-                            rules={{ required: 'Name is required' }} 
+                        <FormField
+                            name="name"
+                            label="Name"
+                            rules={{ required: 'Name is required' }}
                         />
                         <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                             <button

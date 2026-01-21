@@ -11,15 +11,21 @@ import { toast } from 'sonner';
 export function Products() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Product | null>(null);
+    const [page, setPage] = useState(0);
+    const limit = 10;
+
     const queryClient = useQueryClient();
-    
+
     const methods = useForm<Product>();
     const { reset, handleSubmit } = methods;
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery({
-        queryKey: ['products'],
-        queryFn: () => productService.getAll()
+        queryKey: ['products', page],
+        queryFn: () => productService.getAll({ skip: page * limit, limit: limit + 1 })
     });
+
+    const hasMore = products.length > limit;
+    const paginatedProducts = products.slice(0, limit);
 
     const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
         queryKey: ['categories'],
@@ -86,7 +92,7 @@ export function Products() {
         if (editingItem) {
             updateMutation.mutate({ id: editingItem.id_key, data: payload });
         } else {
-            createMutation.mutate(payload as any);
+            createMutation.mutate(payload);
         }
     };
 
@@ -101,8 +107,8 @@ export function Products() {
         { header: 'Name', accessorKey: 'name' as keyof Product },
         { header: 'Price', accessorKey: 'price' as keyof Product },
         { header: 'Stock', accessorKey: 'stock' as keyof Product },
-        { 
-            header: 'Category', 
+        {
+            header: 'Category',
             accessorKey: (item: Product) => categories.find(c => c.id_key === item.category_id)?.name || item.category_id
         },
     ];
@@ -113,14 +119,17 @@ export function Products() {
 
     return (
         <div>
-            <DataTable 
-                title="Products" 
-                data={products} 
+            <DataTable
+                title="Products"
+                data={paginatedProducts}
                 columns={columns}
                 onCreate={openCreateModal}
                 onEdit={openEditModal}
                 onDelete={handleDelete}
                 keyField="id_key"
+                currentPage={page}
+                onPageChange={setPage}
+                hasMore={hasMore}
             />
 
             <Modal
@@ -130,29 +139,29 @@ export function Products() {
             >
                 <FormProvider {...methods}>
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <FormField 
-                            name="name" 
-                            label="Name" 
-                            rules={{ required: 'Name is required' }} 
+                        <FormField
+                            name="name"
+                            label="Name"
+                            rules={{ required: 'Name is required' }}
                         />
-                         <FormField 
-                            name="price" 
-                            label="Price" 
+                        <FormField
+                            name="price"
+                            label="Price"
                             type="number"
-                            rules={{ required: 'Price is required', min: 0 }} 
+                            rules={{ required: 'Price is required', min: 0 }}
                         />
-                         <FormField 
-                            name="stock" 
-                            label="Stock" 
+                        <FormField
+                            name="stock"
+                            label="Stock"
                             type="number"
-                            rules={{ required: 'Stock is required', min: 0 }} 
+                            rules={{ required: 'Stock is required', min: 0 }}
                         />
-                         <FormField 
-                            name="category_id" 
+                        <FormField
+                            name="category_id"
                             label="Category"
                             type="select"
                             options={categoryOptions}
-                            rules={{ required: 'Category is required' }} 
+                            rules={{ required: 'Category is required' }}
                         />
 
                         <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
