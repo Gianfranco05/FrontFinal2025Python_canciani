@@ -1,5 +1,5 @@
-// Matching backend schemas
-// Crucial: Backend uses id_key instead of id
+// Matching backend schemas exactly
+// Backend uses 'id_key' as the primary key identifier
 
 export interface Category {
     id_key: number;
@@ -12,15 +12,8 @@ export interface Product {
     price: number;
     stock: number;
     category_id: number;
-}
-
-export interface Client {
-    id_key: number;
-    name: string;
-    lastname: string;
-    email: string;
-    telephone: string;
-    addresses: Address[];
+    // Optional relationships based on schemas
+    category?: Category;
 }
 
 export interface Address {
@@ -31,6 +24,16 @@ export interface Address {
     client_id: number;
 }
 
+export interface Client {
+    id_key: number;
+    name: string;
+    lastname: string;
+    email: string;
+    telephone?: string;
+    addresses?: Address[];
+}
+
+// Enums as const objects to match Backend IntEnums
 export const DeliveryMethod = {
     DRIVE_THRU: 1,
     ON_HAND: 2,
@@ -58,11 +61,19 @@ export type PaymentType = typeof PaymentType[keyof typeof PaymentType];
 export interface Bill {
     id_key: number;
     bill_number: string;
-    date: string;
+    date: string; // YYYY-MM-DD
     total: number;
     payment_type: PaymentType;
     client_id: number;
     discount?: number;
+}
+
+export interface OrderDetail {
+    id_key: number;
+    quantity: number;
+    price: number;
+    order_id: number;
+    product_id: number;
 }
 
 export interface Order {
@@ -72,15 +83,8 @@ export interface Order {
     delivery_method: DeliveryMethod;
     status: Status;
     client_id: number;
-    bill_id: number;
-}
-
-export interface OrderDetail {
-    id_key: number;
-    quantity: number;
-    price?: number;
-    order_id: number;
-    product_id: number;
+    bill_id?: number; // Optional in backend schema initially
+    order_details?: OrderDetail[];
 }
 
 export interface Review {

@@ -2,17 +2,18 @@ import { useForm } from 'react-hook-form';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowRight, CreditCard, MapPin, ShieldCheck, ShoppingBag, User, Banknote, Wallet } from 'lucide-react';
+import { ArrowRight, CreditCard, MapPin, ShieldCheck, ShoppingBag, User, Banknote, Wallet, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { PaymentType, DeliveryMethod, Status } from '../../types';
-// Agregamos addressService a las importaciones
 import { billService, orderService, clientService, orderDetailService, addressService } from '../../api/services';
 
 interface CheckoutForm {
     firstName: string;
     lastName: string;
     email: string;
-    address: string;
+    phone?: string;      // Nuevo campo
+    street: string;      // Separado de address
+    number: string;      // Nuevo campo requerido por backend
     city: string;
     zipCode: string;
     paymentMethod: string;
@@ -40,7 +41,6 @@ export function Checkout() {
     const selectedPaymentMethod = watch('paymentMethod');
     const isCardPayment = ['2', '3', '4'].includes(selectedPaymentMethod);
 
-    // --- RENDERIZADO SI CARRITO VACÍO ---
     if (cart.length === 0) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -63,32 +63,40 @@ export function Checkout() {
             const stockErrors = cart.filter(item => item.quantity > item.stock);
             if (stockErrors.length > 0) {
                 const names = stockErrors.map(i => i.name).join(", ");
-                throw new Error(`Stock insuficiente para: ${names}. Por favor reduce la cantidad.`);
+                throw new Error(`Stock insuficiente para: ${names}.`);
             }
 
             const today = new Date().toISOString().split('T')[0];
 
-            // 1. CREAR CLIENTE (Sin addresses para evitar error de tipos)
+            // 1. CREAR CLIENTE
+            // Nota: Si el email ya existe, el backend podría devolver error.
+            // Para este flujo simple, intentamos crear. 
+            let clientId: number;
+            
             const clientPayload = {
                 name: data.firstName,
-                lastname: data.lastName,
+                lastname: data.lastName, // Backend schema usa 'lastname'
                 email: data.email,
-                telephone: "0000000000" // Placeholder si no es requerido
-                // No enviamos addresses aquí para evitar el error de id_key faltante
+                telephone: data.phone || undefined
             };
 
-            console.log("1. Creando Cliente...", clientPayload);
-            const createdClient = await clientService.create(clientPayload);
+            try {
+                console.log("1. Registrando Cliente...", clientPayload);
+                const createdClient = await clientService.create(clientPayload);
+                if (!createdClient || !createdClient.id_key) throw new Error("Error al obtener ID del cliente.");
+                clientId = createdClient.id_key;
+            } catch (err: any) {
+                // Si falla, asumimos que es porque existe y tratamos de continuar (o fallamos)
+                // Idealmente deberías tener un endpoint 'get_by_email', pero aquí notificamos.
+                console.error("Error cliente:", err);
+                throw new Error("Error registrando cliente. Es posible que el email ya esté en uso.");
+            }
 
-            if (!createdClient || !createdClient.id_key) throw new Error("Error al registrar cliente.");
-            const clientId = createdClient.id_key;
-
-            // 1.5 CREAR DIRECCIÓN (Vinculada al cliente creado)
-            // Esto soluciona el error de la línea 88 limpiamente
+            // 1.5 CREAR DIRECCIÓN (Ahora con calle y número separados)
             const addressPayload = {
-                street: data.address,
+                street: data.street,
+                number: data.number, // Campo obligatorio en AddressSchema
                 city: data.city,
-                number: "S/N", // Placeholder si no tienes campo número en el form
                 client_id: clientId
             };
             console.log("1.5. Registrando Dirección...", addressPayload);
@@ -96,7 +104,6 @@ export function Checkout() {
 
             // 2. CREAR FACTURA (Bill)
             const generatedBillNumber = `FAC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
             const billPayload = {
                 bill_number: generatedBillNumber,
                 date: today,
@@ -107,14 +114,14 @@ export function Checkout() {
 
             console.log("2. Creando Factura...", billPayload);
             const createdBill = await billService.create(billPayload);
-
             if (!createdBill || !createdBill.id_key) throw new Error("Error al generar factura.");
 
             // 3. CREAR ORDEN (Order Header)
+            // Vinculamos la bill_id recién creada
             const orderPayload = {
                 bill_id: createdBill.id_key,
                 client_id: clientId,
-                date: today,
+                date: today, // Backend datetime acepta string YYYY-MM-DD
                 total: finalTotal,
                 status: Status.PENDING,
                 delivery_method: DeliveryMethod.HOME_DELIVERY
@@ -122,24 +129,24 @@ export function Checkout() {
 
             console.log("3. Creando Orden...", orderPayload);
             const createdOrder = await orderService.create(orderPayload);
-
             if (!createdOrder || !createdOrder.id_key) throw new Error("Error al crear la orden.");
 
-            // 4. CREAR DETALLES DE ORDEN (Items)
+            // 4. CREAR DETALLES (Order Details)
+            // Se insertan uno por uno vinculados a la orden
             console.log("4. Guardando items...");
             const detailPromises = cart.map(item => {
                 return orderDetailService.create({
                     order_id: createdOrder.id_key,
                     product_id: item.id_key,
                     quantity: item.quantity,
-                    price: item.price
+                    price: item.price // Guardamos el precio histórico
                 });
             });
 
             await Promise.all(detailPromises);
 
             // ÉXITO
-            toast.success('¡Orden procesada con éxito!');
+            toast.success('¡Compra finalizada con éxito!');
             clearCart();
             navigate('/');
 
@@ -199,6 +206,20 @@ export function Checkout() {
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
                                         />
                                     </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Teléfono (Opcional)</label>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <Phone className="h-4 w-4 text-gray-400" />
+                                            </div>
+                                            <input
+                                                type="tel"
+                                                {...register('phone')}
+                                                className="mt-1 block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
+                                                placeholder="+54 9 ..."
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
 
@@ -210,16 +231,28 @@ export function Checkout() {
                                     </div>
                                     <h2 className="text-xl font-bold text-gray-900">Dirección de Envío</h2>
                                 </div>
-                                <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700">Calle y Número</label>
+                                <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-6 sm:gap-x-4">
+                                    <div className="sm:col-span-4">
+                                        <label className="block text-sm font-medium text-gray-700">Calle</label>
                                         <input
                                             type="text"
-                                            {...register('address', { required: true })}
+                                            {...register('street', { required: true })}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
+                                            placeholder="Av. San Martín"
                                         />
+                                        {errors.street && <span className="text-red-500 text-xs">Requerido</span>}
                                     </div>
-                                    <div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Número</label>
+                                        <input
+                                            type="text"
+                                            {...register('number', { required: true })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
+                                            placeholder="123"
+                                        />
+                                        {errors.number && <span className="text-red-500 text-xs">Requerido</span>}
+                                    </div>
+                                    <div className="sm:col-span-3">
                                         <label className="block text-sm font-medium text-gray-700">Ciudad</label>
                                         <input
                                             type="text"
@@ -227,7 +260,7 @@ export function Checkout() {
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
                                         />
                                     </div>
-                                    <div>
+                                    <div className="sm:col-span-3">
                                         <label className="block text-sm font-medium text-gray-700">Código Postal</label>
                                         <input
                                             type="text"
@@ -238,7 +271,7 @@ export function Checkout() {
                                 </div>
                             </section>
 
-                            {/* 3. Método de Pago */}
+                            {/* 3. Método de Pago (Misma lógica, código resumido para visualización) */}
                             <section>
                                 <div className="flex items-center mb-6 pt-6 border-t border-gray-100">
                                     <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 mr-4">
@@ -253,13 +286,11 @@ export function Checkout() {
                                         <CreditCard className="mb-2" />
                                         <span className="text-sm font-bold">Crédito</span>
                                     </label>
-
                                     <label className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center transition-all ${selectedPaymentMethod === PaymentType.DEBIT.toString() ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-indigo-200'}`}>
                                         <input type="radio" value={PaymentType.DEBIT} {...register('paymentMethod')} className="sr-only" />
                                         <CreditCard className="mb-2" />
                                         <span className="text-sm font-bold">Débito</span>
                                     </label>
-
                                     <label className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center transition-all ${selectedPaymentMethod === PaymentType.CASH.toString() ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-indigo-200'}`}>
                                         <input type="radio" value={PaymentType.CASH} {...register('paymentMethod')} className="sr-only" />
                                         <Banknote className="mb-2" />
@@ -267,7 +298,6 @@ export function Checkout() {
                                     </label>
                                 </div>
 
-                                {/* Formulario Tarjeta */}
                                 {isCardPayment && (
                                     <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 animate-fade-in">
                                         <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
@@ -275,7 +305,7 @@ export function Checkout() {
                                                 <label className="block text-sm font-medium text-gray-700">Número de Tarjeta</label>
                                                 <input
                                                     type="text"
-                                                    {...register('cardNumber', { required: isCardPayment })}
+                                                    {...register('cardNumber', { required: isCardPayment, minLength: 16 })}
                                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
                                                     placeholder="0000 0000 0000 0000"
                                                 />
@@ -293,21 +323,12 @@ export function Checkout() {
                                                 <label className="block text-sm font-medium text-gray-700">CVC</label>
                                                 <input
                                                     type="text"
-                                                    {...register('cvv', { required: isCardPayment })}
+                                                    {...register('cvv', { required: isCardPayment, minLength: 3 })}
                                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border"
                                                     placeholder="123"
                                                 />
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                {selectedPaymentMethod === PaymentType.CASH.toString() && (
-                                    <div className="bg-green-50 p-4 rounded-xl border border-green-100 text-green-800 text-sm">
-                                        <p className="flex items-center">
-                                            <Banknote className="w-4 h-4 mr-2" />
-                                            Por favor ten el monto exacto al momento de la entrega.
-                                        </p>
                                     </div>
                                 )}
                             </section>
@@ -319,7 +340,7 @@ export function Checkout() {
                                     className="w-full flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-xl text-white bg-gray-900 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 shadow-lg transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
                                     {isProcessing ? (
-                                        <span className="flex items-center">Procesando Orden...</span>
+                                        <span className="flex items-center">Procesando...</span>
                                     ) : (
                                         <>
                                             Confirmar Pago ${finalTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
@@ -335,7 +356,7 @@ export function Checkout() {
                         </form>
                     </div>
 
-                    {/* Resumen Lateral */}
+                    {/* Resumen Lateral (Sin cambios, ya estaba bien) */}
                     <div className="mt-10 lg:mt-0">
                         <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 sm:p-8 sticky top-8">
                             <h3 className="text-xl font-bold text-gray-900 mb-6">Resumen de Orden</h3>
@@ -371,16 +392,6 @@ export function Checkout() {
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                .animate-fade-in {
-                    animation: fadeIn 0.5s ease-in-out;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
         </div>
     );
 }

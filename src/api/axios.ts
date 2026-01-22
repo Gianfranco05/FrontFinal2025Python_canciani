@@ -7,32 +7,11 @@ const api = axios.create({
     },
 });
 
-// Helper to normalize id to id_key recursively
-const normalizeIds = (data: any): any => {
-    if (!data || typeof data !== 'object') return data;
-
-    if (Array.isArray(data)) {
-        return data.map(normalizeIds);
-    }
-
-    const normalized: any = { ...data };
-
-    // If backend returns 'id' but not 'id_key', map it
-    if ('id' in normalized && !('id_key' in normalized)) {
-        normalized.id_key = normalized.id;
-    }
-
-    // Process nested objects
-    Object.keys(normalized).forEach(key => {
-        normalized[key] = normalizeIds(normalized[key]);
-    });
-
-    return normalized;
-};
-
+// Interceptor opcional para depuración
 api.interceptors.response.use(
     (response) => {
-        response.data = normalizeIds(response.data);
+        // El backend ya devuelve 'id_key', así que no necesitamos mapear manualmente
+        // a menos que haya endpoints inconsistentes.
         return response;
     },
     (error) => Promise.reject(error)
