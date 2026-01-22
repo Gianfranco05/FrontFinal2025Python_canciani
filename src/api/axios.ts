@@ -1,17 +1,39 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://final2025python-canciani-1.onrender.com',
+    // URL CORREGIDA (Sin el -1)
+    baseURL: 'https://final2025python-canciani.onrender.com',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Interceptor opcional para depuración
+// Helper para normalizar id a id_key recursivamente
+const normalizeIds = (data: any): any => {
+    if (!data || typeof data !== 'object') return data;
+
+    if (Array.isArray(data)) {
+        return data.map(normalizeIds);
+    }
+
+    const normalized: any = { ...data };
+
+    // Si el backend devuelve 'id' pero no 'id_key', lo mapeamos
+    if ('id' in normalized && !('id_key' in normalized)) {
+        normalized.id_key = normalized.id;
+    }
+
+    // Procesar objetos anidados
+    Object.keys(normalized).forEach(key => {
+        normalized[key] = normalizeIds(normalized[key]);
+    });
+
+    return normalized;
+};
+
 api.interceptors.response.use(
     (response) => {
-        // El backend ya devuelve 'id_key', así que no necesitamos mapear manualmente
-        // a menos que haya endpoints inconsistentes.
+        response.data = normalizeIds(response.data);
         return response;
     },
     (error) => Promise.reject(error)
