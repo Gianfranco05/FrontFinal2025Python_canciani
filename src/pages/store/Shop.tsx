@@ -7,22 +7,25 @@ import { Filter, ShoppingCart, Tag, ArrowRight, Sparkles } from 'lucide-react';
 
 // Diccionario para traducir los nombres de las categorías (Backend -> Frontend)
 const categoryTranslations: Record<string, string> = {
-    'Electronics': 'Electrónica',
-    'Clothing': 'Ropa',
-    'Home': 'Hogar',
-    'Sports': 'Deporte'
+    'Ropa': 'Ropa',
+    'Tecnología': 'Tecnología',
+    'Hogar': 'Hogar',
+    'Accesorios': 'Accesorios',
+    'Audio': 'Audio',
+    'Deportivo': 'Deportivo'
 };
 
 // Función con las descripciones en ESPAÑOL
 const getProductDescription = (categoryName: string = 'General') => {
     const descriptions: Record<string, string> = {
-        'Electronics': 'Experimenta la tecnología de vanguardia con este dispositivo electrónico premium. Diseñado para ofrecer rendimiento y fiabilidad.',
-        'Clothing': 'Mejora tu estilo con esta pieza de fabricación experta. Fabricada con materiales de alta calidad para máxima comodidad y durabilidad.',
-        'Home': 'Transforma tu espacio vital con este complemento elegante y funcional. Perfecto para hogares modernos.',
-        'Sports': 'Supera tus límites con equipos diseñados para un rendimiento óptimo. Diseñados para complementar tu estilo de vida activo.',
-        'default': 'Este producto representa nuestro compromiso con la calidad y la satisfacción del cliente. Cuidadosamente seleccionado para ti.'
+        'Tecnología': 'Tecnología de última generación.',
+        'Ropa': 'Moda y tendencia premium.',
+        'Hogar': 'Diseño y confort para tu hogar.',
+        'Accesorios': 'Complementos con estilo.',
+        'Audio': 'Sonido de alta fidelidad.',
+        'Deportivo': 'Rendimiento y calidad deportiva.',
+        'default': 'Calidad y estilo garantizado.'
     };
-    // Intentamos buscar por el nombre en inglés (que viene de la BD)
     return descriptions[categoryName] || descriptions['default'];
 };
 
@@ -46,7 +49,7 @@ export function Shop() {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans selection:bg-indigo-100 selection:text-indigo-800">
-            
+
             {/* Header Minimalista */}
             <div className="bg-white border-b border-gray-100 py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-6">
@@ -94,10 +97,10 @@ export function Shop() {
                         {filteredProducts.map((product) => {
                             const rawCategoryName = categories.find(c => c.id_key === product.category_id)?.name;
                             const displayCategoryName = categoryTranslations[rawCategoryName || ''] || rawCategoryName || 'Producto';
-                            
+
                             return (
-                                <div 
-                                    key={product.id_key} 
+                                <div
+                                    key={product.id_key}
                                     className="group relative flex flex-col justify-between bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all duration-300"
                                 >
                                     <div>
@@ -121,7 +124,7 @@ export function Shop() {
                                                 {product.name}
                                             </h3>
                                         </Link>
-                                        
+
                                         <p className="text-3xl font-extrabold text-gray-900 mb-6 tracking-tight">
                                             ${product.price.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                         </p>
@@ -144,8 +147,8 @@ export function Shop() {
                                             <ShoppingCart size={18} className="mr-2" />
                                             Agregar
                                         </button>
-                                        
-                                        <Link 
+
+                                        <Link
                                             to={`/shop/${product.id_key}`}
                                             className="p-3 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
                                         >
@@ -157,9 +160,9 @@ export function Shop() {
                         })}
                     </div>
                 )}
-                
+
                 {!isLoadingProducts && filteredProducts.length === 0 && (
-                     <div className="text-center py-20">
+                    <div className="text-center py-20">
                         <p className="text-gray-500 text-lg">No se encontraron productos en esta categoría.</p>
                         <button onClick={() => setSelectedCategory(null)} className="mt-4 text-indigo-600 font-medium hover:underline">
                             Ver todos los productos

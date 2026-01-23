@@ -13,13 +13,13 @@ export function Cart() {
                 <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
                     <ShoppingBag className="w-10 h-10 text-gray-300" />
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Your cart is empty</h2>
-                <p className="text-gray-500 mb-8 max-w-md">Looks like you haven't added anything yet. Discover our premium collection and find what you love.</p>
-                <Link 
-                    to="/shop" 
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Tu carrito está vacío</h2>
+                <p className="text-gray-500 mb-8 max-w-md">Parece que aún no has añadido nada. Descubre nuestra colección premium y encuentra lo que te gusta.</p>
+                <Link
+                    to="/shop"
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200"
                 >
-                    Start Shopping &rarr;
+                    Empezar a comprar &rarr;
                 </Link>
             </div>
         );
@@ -29,9 +29,9 @@ export function Cart() {
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-extrabold text-gray-900 mb-10 flex items-center">
-                    Shopping Cart
+                    Carrito de Compras
                     <span className="ml-4 text-sm font-normal text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">
-                        {cart.length} items
+                        {cart.length} {cart.length === 1 ? 'producto' : 'productos'}
                     </span>
                 </h1>
 
@@ -41,7 +41,7 @@ export function Cart() {
                         <ul className="space-y-4">
                             {cart.map((item) => (
                                 <li key={item.id_key} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-                                    
+
                                     {/* Info del Producto */}
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-lg font-bold text-gray-900 truncate">
@@ -50,13 +50,13 @@ export function Cart() {
                                             </Link>
                                         </h3>
                                         <p className="mt-1 text-sm text-gray-500">
-                                            Price: <span className="font-medium text-gray-900">${item.price.toFixed(2)}</span>
+                                            Precio: <span className="font-medium text-gray-900">${item.price.toFixed(2)}</span>
                                         </p>
                                     </div>
 
                                     {/* Controles de Cantidad y Subtotal */}
                                     <div className="mt-4 sm:mt-0 flex items-center justify-between w-full sm:w-auto sm:space-x-8">
-                                        
+
                                         {/* Selector de Cantidad */}
                                         <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200">
                                             <button
@@ -88,7 +88,7 @@ export function Cart() {
                                         <button
                                             onClick={() => removeFromCart(item.id_key)}
                                             className="ml-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                                            title="Remove item"
+                                            title="Eliminar producto"
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -96,14 +96,14 @@ export function Cart() {
                                 </li>
                             ))}
                         </ul>
-                        
+
                         <div className="mt-6 flex justify-end">
                             <button
                                 onClick={clearCart}
                                 className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors flex items-center px-4 py-2 rounded-lg hover:bg-red-50"
                             >
                                 <Trash2 size={14} className="mr-2" />
-                                Clear Cart
+                                Vaciar Carrito
                             </button>
                         </div>
                     </section>
@@ -111,22 +111,22 @@ export function Cart() {
                     {/* Resumen del Pedido (Sticky) */}
                     <section className="lg:col-span-5 mt-10 lg:mt-0">
                         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-8 sticky top-24">
-                            <h2 className="text-lg font-bold text-gray-900 mb-6">Order Summary</h2>
-                            
+                            <h2 className="text-lg font-bold text-gray-900 mb-6">Resumen del Pedido</h2>
+
                             <dl className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <dt className="text-gray-500">Subtotal</dt>
                                     <dd className="font-medium text-gray-900">${total.toFixed(2)}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-gray-500">Shipping Estimate</dt>
-                                    <dd className="font-medium text-green-600">Free</dd>
+                                    <dt className="text-gray-500">Envío Estimado</dt>
+                                    <dd className="font-medium text-green-600">Gratis</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-gray-500">Tax Estimate</dt>
+                                    <dt className="text-gray-500">Impuestos Estimados (21%)</dt>
                                     <dd className="font-medium text-gray-900">${(total * 0.21).toFixed(2)}</dd>
                                 </div>
-                                
+
                                 <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
                                     <dt className="text-xl font-extrabold text-gray-900">Total</dt>
                                     <dd className="text-xl font-extrabold text-indigo-600">
@@ -140,11 +140,11 @@ export function Cart() {
                                     onClick={() => navigate('/checkout')}
                                     className="w-full flex items-center justify-center px-6 py-4 border border-transparent text-lg font-bold rounded-xl text-white bg-gray-900 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
                                 >
-                                    Proceed to Checkout
+                                    Proceder al Pago
                                     <ArrowRight className="ml-2 w-5 h-5" />
                                 </button>
                                 <p className="mt-4 text-center text-xs text-gray-400">
-                                    Secure Checkout powered by Stripe
+                                    Pago Seguro procesado por Stripe
                                 </p>
                             </div>
                         </div>

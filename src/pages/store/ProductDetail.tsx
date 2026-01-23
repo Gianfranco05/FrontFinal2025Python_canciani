@@ -6,10 +6,12 @@ import { ArrowLeft, ShoppingCart, Tag, Star, Truck, ShieldCheck, RefreshCw } fro
 
 // Diccionario de traducción local
 const categoryTranslations: Record<string, string> = {
-    'Electronics': 'Electrónica',
-    'Clothing': 'Ropa',
-    'Home': 'Hogar',
-    'Sports': 'Deporte'
+    'Ropa': 'Ropa',
+    'Tecnología': 'Tecnología',
+    'Hogar': 'Hogar',
+    'Accesorios': 'Accesorios',
+    'Audio': 'Audio',
+    'Deportivo': 'Deportivo'
 };
 
 export function ProductDetail() {
@@ -32,11 +34,13 @@ export function ProductDetail() {
     // Función auxiliar para generar descripción en ESPAÑOL
     const getProductDescription = (categoryName: string = 'General') => {
         const descriptions: Record<string, string> = {
-            'Electronics': 'Experimenta la tecnología de vanguardia con este dispositivo electrónico premium. Diseñado para ofrecer rendimiento y fiabilidad.',
-            'Clothing': 'Mejora tu estilo con esta pieza de fabricación experta. Fabricada con materiales de alta calidad para máxima comodidad y durabilidad.',
-            'Home': 'Transforma tu espacio vital con este complemento elegante y funcional. Perfecto para hogares modernos.',
-            'Sports': 'Supera tus límites con equipos diseñados para un rendimiento óptimo. Diseñados para complementar tu estilo de vida activo.',
-            'default': 'Este producto representa nuestro compromiso con la calidad y la satisfacción del cliente. Cuidadosamente seleccionado para ti.'
+            'Tecnología': 'Tecnología de última generación.',
+            'Ropa': 'Moda y tendencia premium.',
+            'Hogar': 'Diseño y confort para tu hogar.',
+            'Accesorios': 'Complementos con estilo.',
+            'Audio': 'Sonido de alta fidelidad.',
+            'Deportivo': 'Rendimiento y calidad deportiva.',
+            'default': 'Calidad y estilo garantizado.'
         };
         return descriptions[categoryName] || descriptions['default'];
     };
@@ -50,9 +54,9 @@ export function ProductDetail() {
     return (
         <div className="min-h-screen bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                
+
                 {/* Back Button */}
-                <button 
+                <button
                     onClick={() => navigate(-1)}
                     className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors mb-8 group"
                 >
@@ -61,13 +65,13 @@ export function ProductDetail() {
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                    
+
                     {/* Left: Typography Visual */}
                     <div className="bg-gray-50 rounded-3xl p-12 aspect-square flex flex-col justify-center relative overflow-hidden border border-gray-100">
-                         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
-                         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-purple-100 rounded-full blur-3xl opacity-50"></div>
-                         
-                         <div className="relative z-10">
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
+                        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-purple-100 rounded-full blur-3xl opacity-50"></div>
+
+                        <div className="relative z-10">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white text-indigo-700 shadow-sm mb-6 w-fit uppercase tracking-wider">
                                 <Tag size={12} className="mr-2" />
                                 {displayCategoryName}
@@ -83,7 +87,7 @@ export function ProductDetail() {
                                 </div>
                                 <span className="text-gray-500 text-sm font-medium">(128 reseñas)</span>
                             </div>
-                         </div>
+                        </div>
                     </div>
 
                     {/* Right: Info & Actions */}
@@ -114,7 +118,7 @@ export function ProductDetail() {
                                     <p className="text-sm text-gray-500">Protección completa</p>
                                 </div>
                             </div>
-                             <div className="flex items-start">
+                            <div className="flex items-start">
                                 <RefreshCw className="w-6 h-6 text-indigo-600 mt-1" />
                                 <div className="ml-4">
                                     <h3 className="font-bold text-gray-900">Devoluciones Fáciles</h3>
