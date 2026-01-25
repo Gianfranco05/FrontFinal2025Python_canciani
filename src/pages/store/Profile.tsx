@@ -13,7 +13,7 @@ export function Profile() {
     const [view, setView] = useState<'details' | 'addresses' | 'orders' | 'bills'>('details');
     const [editingAddress, setEditingAddress] = useState<Address | null>(null);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-    
+
     const queryClient = useQueryClient();
     const addressMethods = useForm<Address>();
 
@@ -71,20 +71,50 @@ export function Profile() {
         }
     });
 
-    // Client Update Mutation
+    // Client Update & Delete (Purely Visual for now)
     const updateClientMutation = useMutation({
-        mutationFn: ({ id, data }: { id: number; data: Partial<Client> }) => clientService.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['clients'] });
-            toast.success('Profile updated');
+        mutationFn: async ({ id, data }: { id: number; data: Partial<Client> }) => {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return { id, data };
+        },
+        onSuccess: ({ id, data }) => {
+            queryClient.setQueryData<Client[]>(['clients'], (old) =>
+                old ? old.map(c => c.id_key === id ? { ...c, ...data } : c) : []
+            );
+            toast.success('Perfil actualizado correctamente ');
         }
     });
+
+    const deleteClientMutation = useMutation({
+        mutationFn: async (id: number) => {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return id;
+        },
+        onSuccess: (id) => {
+            queryClient.setQueryData<Client[]>(['clients'], (old) =>
+                old ? old.filter(c => c.id_key !== id) : []
+            );
+            toast.success('Cuenta eliminada de la lista ');
+            if (selectedClientId === id) {
+                setSelectedClientId(null);
+            }
+        }
+    });
+
+    const handleSignOut = () => {
+        if (!selectedClientId) return;
+        if (window.confirm('¿Estás seguro de que quieres cerrar sesión y eliminar esta cuenta del listado?')) {
+            deleteClientMutation.mutate(selectedClientId);
+        }
+    };
 
 
     const handleAddressSubmit = (data: Address) => {
         if (!selectedClientId) return;
         data.client_id = selectedClientId;
-        
+
         if (editingAddress) {
             updateAddressMutation.mutate({ id: editingAddress.id_key, data });
         } else {
@@ -107,18 +137,29 @@ export function Profile() {
     if (!selectedClientId) {
         return (
             <div className="max-w-md mx-auto py-12 text-center px-4">
-                <h2 className="text-2xl font-bold mb-6">Select a Profile</h2>
-                <p className="text-gray-500 mb-6">Simulating login by selecting a client from the database.</p>
+                <h2 className="text-2xl font-bold mb-6">Seleccionar tu Cuenta de Pefil</h2>
+                <p className="text-gray-500 mb-6">Estas son tus cuentas disponibles en este dispositivo</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                     {clients.map(c => (
-                        <button
-                            key={c.id_key}
-                            onClick={() => setSelectedClientId(c.id_key)}
-                            className="w-full p-4 text-left border rounded-lg hover:bg-gray-50 flex justify-between items-center group cursor-pointer"
-                        >
-                            <span className="font-medium text-gray-900">{c.name} {c.lastname}</span>
-                            <span className="text-sm text-gray-500 group-hover:text-indigo-600">Select &rarr;</span>
-                        </button>
+                        <div key={c.id_key} className="flex items-center space-x-2">
+                            <button
+                                onClick={() => setSelectedClientId(c.id_key)}
+                                className="flex-1 p-4 text-left border rounded-lg hover:bg-indigo-50 hover:border-indigo-200 flex justify-between items-center group cursor-pointer transition-all"
+                            >
+                                <div>
+                                    <span className="font-bold text-gray-900 block">{c.name} {c.lastname}</span>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider">{c.email}</span>
+                                </div>
+                                <span className="text-sm text-indigo-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Enter Profile &rarr;</span>
+                            </button>
+                            <button
+                                onClick={() => { if (window.confirm(`Delete ${c.name}'s account?`)) deleteClientMutation.mutate(c.id_key) }}
+                                className="p-4 text-red-500 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-all cursor-pointer"
+                                title="Delete account"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        </div>
                     ))}
                     {clients.length === 0 && (
                         <p>No clients found. Go to Admin Panel or Checkout to create one.</p>
@@ -134,47 +175,51 @@ export function Profile() {
                 {/* Sidebar */}
                 <div className="md:col-span-3">
                     <nav className="space-y-1">
-                         <button
+                        <button
+                            onClick={() => setSelectedClientId(null)}
+                            className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 cursor-pointer mb-4"
+                        >
+                            <span className="truncate">&larr; Switch Profile</span>
+                        </button>
+                        <button
                             onClick={() => setView('details')}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
-                                view === 'details' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
-                            }`}
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${view === 'details' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
+                                }`}
                         >
                             <User className="flex-shrink-0 -ml-1 mr-3 h-6 w-6 text-gray-400" />
                             <span className="truncate">My Details</span>
                         </button>
                         <button
                             onClick={() => setView('addresses')}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
-                                view === 'addresses' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
-                            }`}
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${view === 'addresses' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
+                                }`}
                         >
                             <MapPin className="flex-shrink-0 -ml-1 mr-3 h-6 w-6 text-gray-400" />
                             <span className="truncate">Addresses</span>
                         </button>
-                         <button
+                        <button
                             onClick={() => setView('orders')}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
-                                view === 'orders' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
-                            }`}
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${view === 'orders' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
+                                }`}
                         >
                             <Package className="flex-shrink-0 -ml-1 mr-3 h-6 w-6 text-gray-400" />
                             <span className="truncate">Order History</span>
                         </button>
                         <button
                             onClick={() => setView('bills')}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
-                                view === 'bills' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
-                            }`}
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${view === 'bills' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900 hover:bg-gray-50'
+                                }`}
                         >
                             <CreditCard className="flex-shrink-0 -ml-1 mr-3 h-6 w-6 text-gray-400" />
                             <span className="truncate">Bills</span>
                         </button>
                         <button
-                            onClick={() => setSelectedClientId(null)}
+                            onClick={handleSignOut}
                             className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 cursor-pointer mt-8"
+                            disabled={deleteClientMutation.isPending}
                         >
-                            Sign Out
+                            <Trash2 className="flex-shrink-0 -ml-1 mr-3 h-6 w-6 text-red-400" />
+                            <span className="truncate">{deleteClientMutation.isPending ? 'Removing...' : 'Sign Out & Delete'}</span>
                         </button>
                     </nav>
                 </div>
@@ -197,7 +242,7 @@ export function Profile() {
                             <div className="flex justify-between items-center">
                                 <h3 className="text-lg leading-6 font-medium text-gray-900">My Addresses</h3>
                                 <button
-                                    onClick={() => { setEditingAddress(null); addressMethods.reset({street: '', number: '', city: ''}); setIsAddressModalOpen(true); }}
+                                    onClick={() => { setEditingAddress(null); addressMethods.reset({ street: '', number: '', city: '' }); setIsAddressModalOpen(true); }}
                                     className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
                                 >
                                     <Plus className="h-4 w-4 mr-1" /> Add New
@@ -214,18 +259,18 @@ export function Profile() {
                                                 <p className="mt-1 text-gray-500 text-sm truncate">{address.city}</p>
                                             </div>
                                             <div className="flex-shrink-0 flex flex-col space-y-2">
-                                                 <button 
+                                                <button
                                                     onClick={() => { setEditingAddress(address); addressMethods.reset(address); setIsAddressModalOpen(true); }}
                                                     className="bg-gray-100 rounded-full p-2 hover:bg-gray-200 cursor-pointer text-indigo-600"
-                                                 >
-                                                     <Edit className="w-4 h-4" />
-                                                 </button>
-                                                 <button 
-                                                    onClick={() => { if(window.confirm('Delete?')) deleteAddressMutation.mutate(address.id_key) }}
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => { if (window.confirm('Delete?')) deleteAddressMutation.mutate(address.id_key) }}
                                                     className="bg-gray-100 rounded-full p-2 hover:bg-gray-200 cursor-pointer text-red-600"
-                                                 >
-                                                     <Trash2 className="w-4 h-4" />
-                                                 </button>
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </div>
                                     </li>
@@ -269,26 +314,26 @@ export function Profile() {
                     )}
 
                     {view === 'bills' && (
-                         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                         <ul className="divide-y divide-gray-200">
-                             {myBills.map(bill => (
-                                 <li key={bill.id_key}>
-                                     <div className="px-4 py-4 sm:px-6">
-                                         <div className="flex items-center justify-between">
-                                             <p className="text-sm font-medium text-indigo-600 truncate">{bill.bill_number}</p>
-                                             <p className="text-sm text-gray-500">${bill.total}</p>
-                                         </div>
-                                         <div className="mt-2">
-                                             <p className="text-sm text-gray-500">
-                                                Date: {new Date(bill.date).toLocaleDateString()}
-                                             </p>
-                                         </div>
-                                     </div>
-                                 </li>
-                             ))}
-                             {myBills.length === 0 && <p className="p-4 text-gray-500">No bills found.</p>}
-                         </ul>
-                     </div>
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {myBills.map(bill => (
+                                    <li key={bill.id_key}>
+                                        <div className="px-4 py-4 sm:px-6">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-sm font-medium text-indigo-600 truncate">{bill.bill_number}</p>
+                                                <p className="text-sm text-gray-500">${bill.total}</p>
+                                            </div>
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-500">
+                                                    Date: {new Date(bill.date).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                                {myBills.length === 0 && <p className="p-4 text-gray-500">No bills found.</p>}
+                            </ul>
+                        </div>
                     )}
                 </div>
             </div>
